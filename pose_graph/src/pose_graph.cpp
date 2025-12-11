@@ -59,7 +59,7 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop)
 {
     Vector3d vio_P_cur;
     Matrix3d vio_R_cur;
-    printf("\n keyframe added %d ", cur_kf->index);
+    RCUTILS_LOG_DEBUG("\n keyframe added %d ", cur_kf->index);
 
     int new_seq = 0; // flag for new sequence to add prior factor
 
@@ -106,7 +106,7 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop)
     // if any loop was detected only then process the loop before adding new keyframe
     if (loop_index != -1)
     {
-        // printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
+        // RCUTILS_LOG_DEBUG(" %d detect loop with %d \n", cur_kf->index, loop_index);
         KeyFrame *old_kf = getKeyFrame(loop_index); // to get keyframe with which loop has been detected
 
         if (cur_kf->findConnection(old_kf))
@@ -240,7 +240,7 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop)
     {
         if (cur_kf->has_loop)
         {
-            // printf("has loop \n");
+            // RCUTILS_LOG_DEBUG("has loop \n");
             KeyFrame *connected_KF = getKeyFrame(cur_kf->loop_index);
             Vector3d connected_P, P0;
             Matrix3d connected_R, R0;
@@ -249,7 +249,7 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop)
             cur_kf->getPose(P0, R0);
             if (cur_kf->sequence > 0)
             {
-                // printf("add loop into visual \n");
+                // RCUTILS_LOG_DEBUG("add loop into visual \n");
                 posegraph_visualization->add_loopedge(P0, connected_P + Vector3d(VISUALIZATION_SHIFT_X, VISUALIZATION_SHIFT_Y, 0));
             }
         }
@@ -328,7 +328,7 @@ void PoseGraph::loadKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop)
     }
     if (loop_index != -1)
     {
-        printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
+        RCUTILS_LOG_DEBUG(" %d detect loop with %d \n", cur_kf->index, loop_index);
         KeyFrame *old_kf = getKeyFrame(loop_index);
         if (cur_kf->findConnection(old_kf))
         {
@@ -427,12 +427,12 @@ int PoseGraph::detectLoop(KeyFrame *keyframe, int frame_index)
     QueryResults ret;
     TicToc t_query;
     db.query(keyframe->brief_descriptors, ret, 4, frame_index - 50);
-    // printf("query time: %f", t_query.toc());
+    // RCUTILS_LOG_DEBUG("query time: %f", t_query.toc());
     // cout << "Searching for Image " << frame_index << ". " << ret << endl;
 
     TicToc t_add;
     db.add(keyframe->brief_descriptors);
-    // printf("add feature time: %f", t_add.toc());
+    // RCUTILS_LOG_DEBUG("add feature time: %f", t_add.toc());
     //  ret[0] is the nearest neighbour's score. threshold change with neighour score
     bool find_loop = false;
     cv::Mat loop_result;
@@ -531,7 +531,7 @@ void PoseGraph::optimize4DoF()
         // if we have any keyframes in optimize buff
         if (cur_index != -1)
         {
-            // printf("\n starting to optimize pose graph \n");
+            // RCUTILS_LOG_DEBUG("\n starting to optimize pose graph \n");
             TicToc tmp_t; // time at start of optimization
 
             m_keyframelist.lock();
@@ -571,7 +571,7 @@ void PoseGraph::optimize4DoF()
                     break;
                 i++;
             }
-            printf("pose optimization time: %f \n", tmp_t.toc());
+            RCUTILS_LOG_DEBUG("pose optimization time: %f \n", tmp_t.toc());
 
             // std::cout << "out of keyframe loop \n";
             Vector3d cur_t, vio_t;
@@ -633,7 +633,7 @@ void PoseGraph::updatePath()
         (*it)->getPose(P, R);
         Quaterniond Q;
         Q = R;
-        // printf("path p: %f, %f, %f\n", P.x(), P.z(), P.y());
+        // RCUTILS_LOG_DEBUG("path p: %f, %f, %f\n", P.x(), P.z(), P.y());
 
         geometry_msgs::msg::PoseStamped pose_stamped;
         pose_stamped.header.stamp = rclcpp::Time((*it)->time_stamp);
@@ -731,8 +731,8 @@ void PoseGraph::savePoseGraph()
     m_keyframelist.lock();
     TicToc tmp_t;
     FILE *pFile;
-    printf("pose graph path: %s\n", POSE_GRAPH_SAVE_PATH.c_str());
-    printf("pose graph saving... \n");
+    RCUTILS_LOG_DEBUG("pose graph path: %s\n", POSE_GRAPH_SAVE_PATH.c_str());
+    RCUTILS_LOG_DEBUG("pose graph saving... \n");
     string file_path = POSE_GRAPH_SAVE_PATH + "pose_graph.txt";
     pFile = fopen(file_path.c_str(), "w");
     fprintf(pFile, "index time_stamp Tx Ty Tz Qw Qx Qy Qz loop_index loop_info\n");
@@ -784,7 +784,7 @@ void PoseGraph::savePoseGraph()
     }
     fclose(pFile);
 
-    printf("save pose graph time: %f s\n", tmp_t.toc() / 1000);
+    RCUTILS_LOG_DEBUG("save pose graph time: %f s\n", tmp_t.toc() / 1000);
     m_keyframelist.unlock();
 }
 
@@ -795,14 +795,14 @@ void PoseGraph::loadPoseGraph()
     FILE *pFile;
     string file_path = POSE_GRAPH_SAVE_PATH + "pose_graph.txt";
 
-    printf("lode pose graph from: %s \n", file_path.c_str());
-    printf("pose graph loading...\n");
+    RCUTILS_LOG_DEBUG("lode pose graph from: %s \n", file_path.c_str());
+    RCUTILS_LOG_DEBUG("pose graph loading...\n");
 
     pFile = fopen(file_path.c_str(), "r");
 
     if (pFile == NULL)
     {
-        printf("lode previous pose graph error: wrong previous pose graph path or no previous pose graph \n the system will start with new pose graph \n");
+        RCUTILS_LOG_DEBUG("lode previous pose graph error: wrong previous pose graph path or no previous pose graph \n the system will start with new pose graph \n");
         return;
     }
 
@@ -830,7 +830,7 @@ void PoseGraph::loadPoseGraph()
                   &keypoints_num) != EOF)
     {
         /*
-        printf("I read: %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %d\n", index, time_stamp,
+        RCUTILS_LOG_DEBUG("I read: %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %d\n", index, time_stamp,
                                     VIO_Tx, VIO_Ty, VIO_Tz,
                                     PG_Tx, PG_Ty, PG_Tz,
                                     VIO_Qw, VIO_Qx, VIO_Qy, VIO_Qz,
@@ -890,7 +890,7 @@ void PoseGraph::loadPoseGraph()
             cv::KeyPoint tmp_keypoint_norm;
             double p_x, p_y, p_x_norm, p_y_norm;
             if (!fscanf(keypoints_file, "%lf %lf %lf %lf", &p_x, &p_y, &p_x_norm, &p_y_norm))
-                printf(" fail to load pose graph \n");
+                RCUTILS_LOG_DEBUG(" fail to load pose graph \n");
             tmp_keypoint.pt.x = p_x;
             tmp_keypoint.pt.y = p_y;
             tmp_keypoint_norm.pt.x = p_x_norm;
@@ -910,7 +910,7 @@ void PoseGraph::loadPoseGraph()
         cnt++;
     }
     fclose(pFile);
-    printf("load pose graph time: %f s\n", tmp_t.toc() / 1000);
+    RCUTILS_LOG_DEBUG("load pose graph time: %f s\n", tmp_t.toc() / 1000);
     base_sequence = 0;
 }
 

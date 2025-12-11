@@ -111,7 +111,7 @@ void FeatureManager::debugShow()
         {
             RCUTILS_LOG_DEBUG("%d,", int(j.is_used));
             sum += j.is_used;
-            printf("(%lf,%lf) ",j.point(0), j.point(1));
+            RCUTILS_LOG_DEBUG("(%lf,%lf) ",j.point(0), j.point(1));
         }
         assert(it.used_num == sum);
     }

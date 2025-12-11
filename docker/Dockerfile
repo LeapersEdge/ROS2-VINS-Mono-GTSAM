@@ -4,6 +4,7 @@ FROM ros:jazzy-ros-base
 # Set environment variables
 ENV CERES_VERSION="1.14.0"
 ENV GTSAM_VERSION="4.2"
+ENV EIGEN_VERSION="3.3.7"
 ENV ROS2_WS=/root/ros2_ws
 
 # Install build dependencies
@@ -14,7 +15,6 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libboost-all-dev \
     libatlas-base-dev \
-    libeigen3-dev \
     libgoogle-glog-dev \
     libsuitesparse-dev \
     python3-pip \
@@ -24,6 +24,16 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-message-filters \
     ros-jazzy-tf2 \
     && rm -rf /var/lib/apt/lists/*
+
+# Build and install eigen
+RUN cd / && \
+wget https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VERSION}/eigen-${EIGEN_VERSION}.tar.bz2 && \
+tar -xvf eigen-${EIGEN_VERSION}.tar.bz2 && \
+cd /eigen-${EIGEN_VERSION} && \
+mkdir build && cd build && \
+cmake .. && \
+make -j$(nproc) install && \
+rm -rf /eigen-${EIGEN_VERSION}
 
 # Build and install Ceres
 RUN cd / && \
@@ -46,7 +56,6 @@ RUN cd / && \
     cmake .. && \
     make -j$(nproc) install && \
     rm -rf /gtsam-${GTSAM_VERSION}
-
 
 # Create workspace
 RUN mkdir -p $ROS2_WS/src

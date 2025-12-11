@@ -85,9 +85,9 @@ double last_image_time = -1; // time reference to create a new sequence
 // to reset everything, update sequence number and empty all the buffers
 void new_sequence()
 {
-    printf("new sequence\n");
+    RCUTILS_LOG_DEBUG("new sequence\n");
     sequence++;
-    printf("sequence cnt %d \n", sequence);
+    RCUTILS_LOG_DEBUG("sequence cnt %d \n", sequence);
     // can remove this if you want to support more than 5 sequences
     if (sequence > 5)
     {
@@ -119,7 +119,7 @@ void image_callback(const sensor_msgs::msg::Image::ConstPtr &image_msg)
     m_buf.lock();
     image_buf.push(image_msg);
     m_buf.unlock();
-    // printf(" image time %f \n", image_msg->header.stamp.toSec());
+    // RCUTILS_LOG_DEBUG(" image time %f \n", image_msg->header.stamp.toSec());
 
     // detect unstable camera stream
     if (last_image_time == -1)
@@ -145,7 +145,7 @@ void point_callback(const sensor_msgs::msg::PointCloud::ConstPtr& point_msg)
     /*
     for (unsigned int i = 0; i < point_msg->points.size(); i++)
     {
-        printf("%d, 3D point: %f, %f, %f 2D point %f, %f \n",i , point_msg->points[i].x,
+        RCUTILS_LOG_DEBUG("%d, 3D point: %f, %f, %f 2D point %f, %f \n",i , point_msg->points[i].x,
                                                      point_msg->points[i].y,
                                                      point_msg->points[i].z,
                                                      point_msg->channels[i].values[0],
@@ -164,7 +164,7 @@ void pose_callback(const nav_msgs::msg::Odometry::ConstPtr &pose_msg)
     pose_buf.push(pose_msg);
     m_buf.unlock();
     /*
-    printf("pose t: %f, %f, %f   q: %f, %f, %f %f \n", pose_msg->pose.pose.position.x,
+    RCUTILS_LOG_DEBUG("pose t: %f, %f, %f   q: %f, %f, %f %f \n", pose_msg->pose.pose.position.x,
                                                        pose_msg->pose.pose.position.y,
                                                        pose_msg->pose.pose.position.z,
                                                        pose_msg->pose.pose.orientation.w,
@@ -218,7 +218,7 @@ void relo_relative_pose_callback(const nav_msgs::msg::Odometry::ConstPtr &pose_m
     relative_q.z() = pose_msg->pose.pose.orientation.z;
     double relative_yaw = pose_msg->twist.twist.linear.x;
     int index = pose_msg->twist.twist.linear.y;
-    // printf("receive index %d \n", index );
+    // RCUTILS_LOG_DEBUG("receive index %d \n", index );
     Eigen::Matrix<double, 8, 1> loop_info;
     loop_info << relative_t.x(), relative_t.y(), relative_t.z(),
         relative_q.w(), relative_q.x(), relative_q.y(), relative_q.z(),
@@ -340,12 +340,12 @@ void process()
             if ((image_buf.front()->header.stamp.sec+image_buf.front()->header.stamp.nanosec * (1e-9)) > (pose_buf.front()->header.stamp.sec+pose_buf.front()->header.stamp.nanosec * (1e-9)))
             {
                 pose_buf.pop();
-                printf("throw pose at beginning\n");
+                RCUTILS_LOG_DEBUG("throw pose at beginning\n");
             }
             else if ((image_buf.front()->header.stamp.sec+image_buf.front()->header.stamp.nanosec * (1e-9)) > (point_buf.front()->header.stamp.sec+point_buf.front()->header.stamp.nanosec * (1e-9)))
             {
                 point_buf.pop();
-                printf("throw point at beginning\n");
+                RCUTILS_LOG_DEBUG("throw point at beginning\n");
             }
             else if ((image_buf.back()->header.stamp.sec+image_buf.back()->header.stamp.nanosec * (1e-9)) >= (pose_buf.front()->header.stamp.sec+pose_buf.front()->header.stamp.nanosec * (1e-9)) 
                 && (point_buf.back()->header.stamp.sec+point_buf.back()->header.stamp.nanosec * (1e-9)) >= (pose_buf.front()->header.stamp.sec+pose_buf.front()->header.stamp.nanosec * (1e-9)))
@@ -370,9 +370,9 @@ void process()
         // if message found
         if (pose_msg != NULL)
         {
-            // printf(" pose time %f \n", pose_msg->header.stamp.toSec());
-            // printf(" point time %f \n", point_msg->header.stamp.toSec());
-            // printf(" image time %f \n", image_msg->header.stamp.toSec());
+            // RCUTILS_LOG_DEBUG(" pose time %f \n", pose_msg->header.stamp.toSec());
+            // RCUTILS_LOG_DEBUG(" point time %f \n", point_msg->header.stamp.toSec());
+            // RCUTILS_LOG_DEBUG(" image time %f \n", image_msg->header.stamp.toSec());
             //  skip first few
             if (skip_first_cnt < SKIP_FIRST_CNT)
             {
@@ -442,7 +442,7 @@ void process()
                     point_2d_uv.push_back(p_2d_uv);
                     point_id.push_back(p_id);
 
-                    // printf("u %f, v %f \n", p_2d_uv.x, p_2d_uv.y);
+                    // RCUTILS_LOG_DEBUG("u %f, v %f \n", p_2d_uv.x, p_2d_uv.y);
                 }
                 KeyFrame* keyframe = new KeyFrame(pose_msg->header.stamp.sec+pose_msg->header.stamp.nanosec * (1e-9), frame_index, T, R, image,
                                    point_3d, point_2d_uv, point_2d_normal, point_id, sequence);   
@@ -473,8 +473,8 @@ void command()
             m_process.lock();
             posegraph.savePoseGraph();
             m_process.unlock();
-            printf("save pose graph finish\nyou can set 'load_previous_pose_graph' to 1 in the config file to reuse it next time\n");
-            // printf("program shutting down...\n");
+            RCUTILS_LOG_DEBUG("save pose graph finish\nyou can set 'load_previous_pose_graph' to 1 in the config file to reuse it next time\n");
+            // RCUTILS_LOG_DEBUG("program shutting down...\n");
             // ros::shutdown();
         }
         if (c == 'n')
@@ -557,16 +557,16 @@ rclcpp::init(argc, argv);
 
         if (LOAD_PREVIOUS_POSE_GRAPH)
         {
-            printf("load pose graph\n");
+            RCUTILS_LOG_DEBUG("load pose graph\n");
             m_process.lock();
             posegraph.loadPoseGraph();
             m_process.unlock();
-            printf("load pose graph finish\n");
+            RCUTILS_LOG_DEBUG("load pose graph finish\n");
             load_flag = 1;
         }
         else
         {
-            printf("no previous pose graph\n");
+            RCUTILS_LOG_DEBUG("no previous pose graph\n");
             load_flag = 1;
         }
     }
