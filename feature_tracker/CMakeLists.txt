@@ -1,31 +1,30 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(feature_tracker)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++14")
+set(CMAKE_CXX_FLAGS "-std=c++17")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    std_msgs
-    sensor_msgs
-    cv_bridge
-    camera_model
-    )
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rcpputils REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(camera_model REQUIRED)
+find_package(image_transport REQUIRED)
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 
-catkin_package()
-
-include_directories(
-    ${catkin_INCLUDE_DIRS}
-    )
+include_directories("../camera_model/include")
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${OpenCV_INCLUDE_DIRS}
+  ${cv_bridge_INCLUDE_DIRS}
 )
 
 add_executable(feature_tracker
@@ -34,4 +33,22 @@ add_executable(feature_tracker
     src/feature_tracker.cpp
     )
 
-target_link_libraries(feature_tracker ${catkin_LIBRARIES} ${OpenCV_LIBS})
+ament_target_dependencies(feature_tracker rclcpp rcpputils std_msgs sensor_msgs geometry_msgs cv_bridge camera_model image_transport)
+target_link_libraries(feature_tracker 
+    ${OpenCV_LIBS}
+    ${cv_bridge_LIBRARIES}
+)
+
+# Install nodes
+install(
+  TARGETS feature_tracker
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+#install(DIRECTORY
+#  launch
+#  DESTINATION share/${PROJECT_NAME}
+#)
+
+ament_package()
+

@@ -24,29 +24,31 @@ double ROW, COL;
 double TD, TR;
 
 template <typename T>
-T readParam(ros::NodeHandle &n, std::string name)
+T readParam(rclcpp::Node::SharedPtr n, std::string name)
 {
     T ans;
-    if (n.getParam(name, ans))
+    std::string default_value = "";
+    n->declare_parameter<std::string>(name, default_value);
+    if (n->get_parameter(name, ans))
     {
-        ROS_INFO_STREAM("Loaded " << name << ": " << ans);
+        RCLCPP_INFO_STREAM(n->get_logger(), "Loaded " << name << ": " << ans);
     }
     else
     {
-        ROS_ERROR_STREAM("Failed to load " << name);
-        n.shutdown();
+        RCLCPP_ERROR_STREAM(n->get_logger(), "Failed to load " << name);
+        rclcpp::shutdown();
     }
     return ans;
 }
 
-void readParameters(ros::NodeHandle &n)
+void readParameters(rclcpp::Node::SharedPtr n)
 {
     std::string config_file;
     config_file = readParam<std::string>(n, "config_file");
     cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
     if(!fsSettings.isOpened())
     {
-        std::cerr << "ERROR: Wrong path to settings" << std::endl;
+        RCLCPP_ERROR(n->get_logger(), "ERROR: Wrong path to settings");
     }
 
     fsSettings["imu_topic"] >> IMU_TOPIC;
@@ -59,7 +61,7 @@ void readParameters(ros::NodeHandle &n)
     std::string OUTPUT_PATH;
     fsSettings["output_path"] >> OUTPUT_PATH;
     VINS_RESULT_PATH = OUTPUT_PATH + "/vins_result_no_loop.csv";
-    std::cout << "result path " << VINS_RESULT_PATH << std::endl;
+    RCLCPP_INFO(n->get_logger(), "result path %s", VINS_RESULT_PATH.c_str());
 
     // create folder if not exists
     FileSystemHelper::createDirectoryIfNotExists(OUTPUT_PATH.c_str());
@@ -74,26 +76,25 @@ void readParameters(ros::NodeHandle &n)
     G.z() = fsSettings["g_norm"];
     ROW = fsSettings["image_height"];
     COL = fsSettings["image_width"];
-    ROS_INFO("ROW: %f COL: %f ", ROW, COL);
+    RCLCPP_INFO(n->get_logger(), "ROW: %f COL: %f ", ROW, COL);
 
     ESTIMATE_EXTRINSIC = fsSettings["estimate_extrinsic"];
     if (ESTIMATE_EXTRINSIC == 2)
     {
-        ROS_WARN("have no prior about extrinsic param, calibrate extrinsic param");
+        RCLCPP_WARN(n->get_logger(), "have no prior about extrinsic param, calibrate extrinsic param");
         RIC.push_back(Eigen::Matrix3d::Identity());
         TIC.push_back(Eigen::Vector3d::Zero());
         EX_CALIB_RESULT_PATH = OUTPUT_PATH + "/extrinsic_parameter.csv";
-
     }
     else 
     {
         if ( ESTIMATE_EXTRINSIC == 1)
         {
-            ROS_WARN(" Optimize extrinsic param around initial guess!");
+            RCLCPP_WARN(n->get_logger(), " Optimize extrinsic param around initial guess!");
             EX_CALIB_RESULT_PATH = OUTPUT_PATH + "/extrinsic_parameter.csv";
         }
         if (ESTIMATE_EXTRINSIC == 0)
-            ROS_WARN(" fix extrinsic param ");
+            RCLCPP_WARN(n->get_logger(), " fix extrinsic param ");
 
         cv::Mat cv_R, cv_T;
         fsSettings["extrinsicRotation"] >> cv_R;
@@ -106,9 +107,8 @@ void readParameters(ros::NodeHandle &n)
         eigen_R = Q.normalized();
         RIC.push_back(eigen_R);
         TIC.push_back(eigen_T);
-        ROS_INFO_STREAM("Extrinsic_R : " << std::endl << RIC[0]);
-        ROS_INFO_STREAM("Extrinsic_T : " << std::endl << TIC[0].transpose());
-        
+        RCLCPP_INFO_STREAM(n->get_logger(), "Extrinsic_R : " << std::endl << RIC[0]);
+        RCLCPP_INFO_STREAM(n->get_logger(), "Extrinsic_T : " << std::endl << TIC[0].transpose()); 
     } 
 
     INIT_DEPTH = 5.0;
@@ -118,15 +118,15 @@ void readParameters(ros::NodeHandle &n)
     TD = fsSettings["td"];
     ESTIMATE_TD = fsSettings["estimate_td"];
     if (ESTIMATE_TD)
-        ROS_INFO_STREAM("Unsynchronized sensors, online estimate time offset, initial td: " << TD);
+        RCLCPP_INFO_STREAM(n->get_logger(), "Unsynchronized sensors, online estimate time offset, initial td: " << TD);
     else
-        ROS_INFO_STREAM("Synchronized sensors, fix time offset: " << TD);
+        RCLCPP_INFO_STREAM(n->get_logger(), "Synchronized sensors, fix time offset: " << TD);
 
     ROLLING_SHUTTER = fsSettings["rolling_shutter"];
     if (ROLLING_SHUTTER)
     {
         TR = fsSettings["rolling_shutter_tr"];
-        ROS_INFO_STREAM("rolling shutter camera, read out time per line: " << TR);
+        RCLCPP_INFO_STREAM(n->get_logger(), "rolling shutter camera, read out time per line: " << TR);
     }
     else
     {

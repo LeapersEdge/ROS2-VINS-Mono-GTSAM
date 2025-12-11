@@ -1,46 +1,52 @@
-FROM ros:kinetic-perception
+# Use official ROS 2 Jazzy base
+FROM ros:jazzy-ros-base
 
+# Set environment variables
 ENV CERES_VERSION="1.12.0"
-ENV CATKIN_WS=/root/catkin_ws
+ENV ROS2_WS=/root/ros2_ws
 
-      # set up thread number for building
-RUN   if [ "x$(nproc)" = "x1" ] ; then export USE_PROC=1 ; \
-      else export USE_PROC=$(($(nproc)/2)) ; fi && \
-      apt-get update && apt-get install -y \
-      cmake \
-      libatlas-base-dev \
-      libeigen3-dev \
-      libgoogle-glog-dev \
-      libsuitesparse-dev \
-      python-catkin-tools \
-      ros-${ROS_DISTRO}-cv-bridge \
-      ros-${ROS_DISTRO}-image-transport \
-      ros-${ROS_DISTRO}-message-filters \
-      ros-${ROS_DISTRO}-tf && \
-      rm -rf /var/lib/apt/lists/* && \
-      # Build and install Ceres
-      git clone https://ceres-solver.googlesource.com/ceres-solver && \
-      cd ceres-solver && \
-      git checkout tags/${CERES_VERSION} && \
-      mkdir build && cd build && \
-      cmake .. && \
-      make -j$(USE_PROC) install && \
-      rm -rf ../../ceres-solver && \
-      mkdir -p $CATKIN_WS/src/VINS-Mono/
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    cmake \
+    git \
+    build-essential \
+    libatlas-base-dev \
+    libeigen3-dev \
+    libgoogle-glog-dev \
+    libsuitesparse-dev \
+    python3-pip \
+    python3-colcon-common-extensions \
+    ros-jazzy-cv-bridge \
+    ros-jazzy-image-transport \
+    ros-jazzy-message-filters \
+    ros-jazzy-tf2 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy VINS-Mono
-COPY ./ $CATKIN_WS/src/VINS-Mono/
-# use the following line if you only have this dockerfile
-# RUN git clone https://github.com/HKUST-Aerial-Robotics/VINS-Mono.git
+# Build and install Ceres
+RUN git clone https://ceres-solver.googlesource.com/ceres-solver /ceres-solver && \
+    cd /ceres-solver && \
+    git checkout tags/${CERES_VERSION} && \
+    mkdir build && cd build && \
+    cmake .. && \
+    make -j$(nproc) install && \
+    rm -rf /ceres-solver
 
-# Build VINS-Mono
-WORKDIR $CATKIN_WS
+# Create workspace
+RUN mkdir -p $ROS2_WS/src
+
+# Copy VINS-Mono source code
+COPY ./ $ROS2_WS/src/VINS-Mono/
+
+# Set working directory
+WORKDIR $ROS2_WS
+
+# Build workspace using colcon
+RUN . /opt/ros/jazzy/setup.sh && \
+    colcon build --symlink-install
+
+# Source the workspace on container start
+RUN echo "source $ROS2_WS/install/setup.bash" >> /ros_entrypoint.sh
+
+# Set default environment
 ENV TERM xterm
 ENV PYTHONIOENCODING UTF-8
-RUN catkin config \
-      --extend /opt/ros/$ROS_DISTRO \
-      --cmake-args \
-        -DCMAKE_BUILD_TYPE=Release && \
-    catkin build && \
-    sed -i '/exec "$@"/i \
-            source "/root/catkin_ws/devel/setup.bash"' /ros_entrypoint.sh

@@ -38,13 +38,13 @@ PoseGraph::~PoseGraph()
 }
 
 // for Ros Publishers to advertise topics : pose_graph_path, base_path, path_1, path_3 .... till 9
-void PoseGraph::registerPub(ros::NodeHandle &n)
+void PoseGraph::registerPub(rclcpp::Node::SharedPtr n)
 {
-    pub_pg_path = n.advertise<nav_msgs::Path>("pose_graph_path", 1000);
-    pub_base_path = n.advertise<nav_msgs::Path>("base_path", 1000);
-    pub_pose_graph = n.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000);
+    pub_pg_path = n->create_publisher<nav_msgs::msg::Path>("pose_graph_path", 1000);
+    pub_base_path = n->create_publisher<nav_msgs::msg::Path>("base_path", 1000);
+    pub_pose_graph = n->create_publisher<visualization_msgs::msg::MarkerArray>("pose_graph", 1000);
     for (int i = 1; i < 10; i++)
-        pub_path[i] = n.advertise<nav_msgs::Path>("path_" + to_string(i), 1000);
+        pub_path[i] = n->create_publisher<nav_msgs::msg::Path>("path_" + to_string(i), 1000);
 }
 
 // To load descriptor vocabulary (can use anytype of descriptor)
@@ -187,8 +187,8 @@ void PoseGraph::addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop)
     R = r_drift * R;
     cur_kf->updatePose(P, R);
     Quaterniond Q{R};
-    geometry_msgs::PoseStamped pose_stamped;
-    pose_stamped.header.stamp = ros::Time(cur_kf->time_stamp);
+    geometry_msgs::msg::PoseStamped pose_stamped;
+    pose_stamped.header.stamp = rclcpp::Time(cur_kf->time_stamp);
     pose_stamped.header.frame_id = "world";
     pose_stamped.pose.position.x = P.x() + VISUALIZATION_SHIFT_X;
     pose_stamped.pose.position.y = P.y() + VISUALIZATION_SHIFT_Y;
@@ -346,9 +346,9 @@ void PoseGraph::loadKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop)
     Matrix3d R;
     cur_kf->getPose(P, R);
     Quaterniond Q{R};
-    geometry_msgs::PoseStamped pose_stamped;
+    geometry_msgs::msg::PoseStamped pose_stamped;
     // setting up message
-    pose_stamped.header.stamp = ros::Time(cur_kf->time_stamp);
+    pose_stamped.header.stamp = rclcpp::Time(cur_kf->time_stamp);
     pose_stamped.header.frame_id = "world";
     pose_stamped.pose.position.x = P.x() + VISUALIZATION_SHIFT_X;
     pose_stamped.pose.position.y = P.y() + VISUALIZATION_SHIFT_Y;
@@ -635,8 +635,8 @@ void PoseGraph::updatePath()
         Q = R;
         // printf("path p: %f, %f, %f\n", P.x(), P.z(), P.y());
 
-        geometry_msgs::PoseStamped pose_stamped;
-        pose_stamped.header.stamp = ros::Time((*it)->time_stamp);
+        geometry_msgs::msg::PoseStamped pose_stamped;
+        pose_stamped.header.stamp = rclcpp::Time((*it)->time_stamp);
         pose_stamped.header.frame_id = "world";
         pose_stamped.pose.position.x = P.x() + VISUALIZATION_SHIFT_X;
         pose_stamped.pose.position.y = P.y() + VISUALIZATION_SHIFT_Y;
@@ -922,13 +922,13 @@ void PoseGraph::publish()
         // if (sequence_loop[i] == true || i == base_sequence)
         if (1 || i == base_sequence)
         {
-            pub_pg_path.publish(path[i]);
-            pub_path[i].publish(path[i]);
+            pub_pg_path->publish(path[i]);
+            pub_path[i]->publish(path[i]);
             posegraph_visualization->publish_by(pub_pose_graph, path[sequence_cnt].header);
         }
     }
     base_path.header.frame_id = "world";
-    pub_base_path.publish(base_path);
+    pub_base_path->publish(base_path);
     // posegraph_visualization->publish_by(pub_pose_graph, path[sequence_cnt].header);
 }
 

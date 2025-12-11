@@ -9,11 +9,12 @@
 #include <ceres/rotation.h>
 #include <queue>
 #include <assert.h>
-#include <nav_msgs/Path.h>
-#include <geometry_msgs/PointStamped.h>
-#include <nav_msgs/Odometry.h>
+#include <nav_msgs/msg/path.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <stdio.h>
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include "keyframe.h"
 #include "utility/tic_toc.h"
 #include "utility/utility.h"
@@ -44,14 +45,14 @@ class PoseGraph
 public:
 	PoseGraph();
 	~PoseGraph();
-	void registerPub(ros::NodeHandle &n);						// to register publishers
+	void registerPub(rclcpp::Node::SharedPtr n);						// to register publishers
 	void addKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop);	// to add keyframe to keyframelist, also adds factors to factor graph
 	void loadKeyFrame(KeyFrame *cur_kf, bool flag_detect_loop); // to load keyframe to keyframelist, also adds factors to factor graph
 	void loadVocabulary(std::string voc_path);
 	void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1> &_loop_info);
 	KeyFrame *getKeyFrame(int index);
-	nav_msgs::Path path[10];
-	nav_msgs::Path base_path;
+    nav_msgs::msg::Path path[10];
+    nav_msgs::msg::Path base_path;
 	CameraPoseVisualization *posegraph_visualization;
 	void savePoseGraph();
 	void loadPoseGraph();
@@ -109,10 +110,10 @@ private:
 	BriefVocabulary *voc;
 
 	// Publishers for paths
-	ros::Publisher pub_pg_path;
-	ros::Publisher pub_base_path;
-	ros::Publisher pub_pose_graph;
-	ros::Publisher pub_path[10];
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_pg_path;
+	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_base_path;
+	rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_pose_graph;
+	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_path[10];
 };
 
 // To normalize angle and get value between 0 to 360
