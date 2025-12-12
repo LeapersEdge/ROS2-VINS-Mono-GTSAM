@@ -37,7 +37,7 @@ docker run \
     /bin/bash -c "\
     cd /root/ros2_ws/; \
     source /opt/ros/jazzy/setup.bash; \
-    colcon build --symlink-install; \
+    colcon build --symlink-install --executor sequential; \
     source install/setup.bash; \
     ros2 launch vins_estimator ${1} \
   "
