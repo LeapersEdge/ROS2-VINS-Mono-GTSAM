@@ -53,7 +53,7 @@ add_executable(vins_estimator
     src/initial/initial_ex_rotation.cpp
     )
 
-ament_target_dependencies(vins_estimator rclcpp std_msgs sensor_msgs visualization_msgs geometry_msgs nav_msgs tf2 tf2_ros cv_bridge camera_model image_transport)
+ament_target_dependencies(vins_estimator rclcpp rcpputils std_msgs sensor_msgs visualization_msgs geometry_msgs nav_msgs tf2 tf2_ros cv_bridge camera_model image_transport)
 
 target_link_libraries(vins_estimator ${OpenCV_LIBS} ${CERES_LIBRARIES}) 
 
